@@ -1,0 +1,101 @@
+import random
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+import math
+import numpy as np
+import scipy.special as sp
+
+
+
+#I still am not sure if the added electrostatic force from the levitated sphere is working as it should
+#It makes sense when i make the sphere extremely charged (either positive or negative), but at the smaller charge
+#the Po218 does pretty weird and unpredictable things. It might be correct but I'm not positive
+
+#will assume that the sphere is located at the point 0,0,0 and that the Po218
+#is generated somewhere randomly in the volume that is surrounded by electrodes
+
+x0 = .0254*random.random() - .0127
+y0 = .0254*random.random() - .0127
+z0 = .0254*random.random() - .0127
+
+#will assume that the intitial velocity is just that of Po218 in room temperature air
+#(since alpha decay can happen in any direction)
+#We will use the root square mean of the speed
+speed = math.sqrt(3 * kB * temp / m)
+theta = random.random() * math.pi
+phi = random.random() * 2 * math.pi
+
+
+vx0 = speed * math.sin(theta) * math.cos(phi)
+vy0 = speed * math.sin(theta) * math.sin(phi)
+vz0 = speed * math.cos(theta)
+
+#information about the Po218 atom and the other parameters for the constants
+m = 218*1.660538921*(10**-27)
+e = 1*1.602176634*(10**-19)
+temp = 295
+kB = 1.380649*(10 ** -23)
+e0 = 8.854187817 * (10 ** -12)
+
+xlen = .0127
+ylen = .0127
+
+Vac = 100
+Udc = 2
+Omega = 1.35255 * (10 ** 6)
+
+qx = 8 * e * Vac / (2 * (Omega ** 2) * m * (xlen ** 2 + ylen ** 2))
+qy = qx
+qz = -2*qx
+
+ax = 16 * e * Udc / (2 * (Omega ** 2) * m * (xlen ** 2 + ylen ** 2))
+ay = ax
+az = -2*ax
+
+
+
+#initial position and velocity vectors for the Po218 atoms
+V0 = [x0, y0, z0, vx0, vy0, vz0]
+
+def model(v, t):
+    # v is a vector where v = [x, y, z, vx, vy, vz]
+    x = v[0]
+    y = v[1]
+    z = v[2]
+    dx = v[3]
+    dy = v[4]
+    dz = v[5]
+    #vdot is the derivative of each of the terms in v, so x = vx etc..
+    accq = (e * e * 2e5) / (m * 4 * math.pi * e0 * (math.sqrt((x ** 2) + (y ** 2) + (z ** 2)) ** 2))
+    norm = 1 / math.sqrt((x ** 2) + (y ** 2) + (z ** 2))
+    vdot = [[],[],[],[],[],[]]
+    vdot[0] = dx
+    vdot[1] = dy
+    vdot[2] = dz
+    #now we find accelerations from the rf field and the coloumb force
+    vdot[3] = -(((Omega ** 2) / 4) * (ax - 2 * qx * math.cos(Omega * t)) * x) - (x * norm * accq)
+    vdot[4] = -(((Omega ** 2) / 4) * (ay - 2 * qy * math.cos(Omega * t)) * y) - (y * norm * accq)
+    vdot[5] = -(((Omega ** 2) / 4) * (az - 2 * qz * math.cos(Omega * t)) * z) - (z * norm * accq)
+    return vdot
+
+timescale = 100000000
+finaltime = 10
+time = np.linspace(0, finaltime, timescale)
+sol = odeint(model, V0, time)
+
+#checking to see if the atom hits the sphere (sphere is at 0,0,0)
+for i in range (timescale):
+    if (abs(sol[i,0]) < (5 * (10 ** -6)) and abs(sol[i,1]) < (5 * (10 ** -6)) and abs(sol[i,2]) < (5 * (10 ** -6))):
+        print("time of capture is ", (finaltime / timescale) * i)
+        plt.axvline((finaltime / timescale) * i, color = 'r')
+        break
+
+plt.plot(time, sol[:,0], label = 'xpos')
+plt.plot(time, sol[:,1], label = 'ypos')
+plt.plot(time, sol[:,2], label = 'zpos')
+plt.xlim(0,1)
+
+plt.legend(loc = 'upper left')
+plt.show()
+
+
