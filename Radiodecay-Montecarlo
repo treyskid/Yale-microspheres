@@ -1,0 +1,102 @@
+import random
+import matplotlib.pyplot as plt
+
+#This code shows the concentration of each atom on the Rn222 decay over time
+#Right now we are assuming 18000 Rn which is the initial concentration of Rn in
+#the electrode size that I was given. That can be changed if we decide to pump in
+#More Rn than is in room temperature air
+
+
+#Literature shows that around .75 of the Po218 atoms are positive, so this is
+#the amount that can be hypothetically captured by electrodes onto the sphere 
+captureprob = .75
+
+#creating empy lists for the number of each atoms. tau is the half life in secs
+
+Rntracker = list()
+Rn = 18000
+tauRn = (3.8235*24*60*60)
+
+Po218tracker = list()
+Po218 = 0
+tauPo218 = (3.098 * 60)
+
+Pb214 = 0
+Pb214tracker = list()
+tauPb214 = (26.8 * 60)
+
+Bi = 0
+Bitracker = list()
+tauBi = (19.9 * 60)
+
+Po214 = 0
+Po214tracker = list()
+tauPo214 = (164.3 * (10 ** -6))
+
+Pb210 = 0
+Pb210tracker = list()
+
+t = 0
+time = list()
+dt = 15
+
+#the probability that one atom of a certain type decays in a given time dt
+pRndecay = 1 - 2 ** (-dt / tauRn)
+pPo218decay = 1 - 2 **(-dt / tauPo218)
+pPb214decay = 1 - 2 **(-dt / tauPb214)
+pBidecay = 1 - 2 **(-dt / tauBi)
+pPo214decay = 1 - 2 **(-dt / tauPo214)
+
+while t < 864000:
+    #add the current number of each atom to its list
+    Rntracker.append(Rn)
+    time.append(t/3600)
+    Po218tracker.append(Po218)
+    Pb214tracker.append(Pb214)
+    Bitracker.append(Bi)
+    Po214tracker.append(Po214)
+    Pb210tracker.append(Pb210)
+    t += dt
+    #decay atoms based on the probability that they decay 
+    for i in range (Rn):
+        if random.random() <= pRndecay:
+            Rn -= 1
+            if random.random() <= captureprob:
+                Po218 += 1
+    for i in range(Po218):
+        if random.random() <= pPo218decay:
+            Po218 -= 1
+            Pb214 += 1
+    for i in range(Pb214):
+        if random.random() <= pPb214decay:
+            Pb214 -= 1
+            Bi += 1
+    for i in range(Bi):
+        if random.random() <= pBidecay:
+            Bi -= 1
+            Po214 += 1
+    for i in range(Po214):
+        if random.random() <= pPo214decay:
+            Po214 -= 1
+            Pb210 += 1
+
+#t2 and t1 are two artbitrary times (in minutes) to check creation rates
+t1= 300
+t2 = 1200
+Pb210creationrate = (Pb210tracker[t2]-Pb210tracker[t1]) / (t2 - t1)
+print(Pb210creationrate)
+plt.plot(time, Rntracker, label="Rn")
+#plt.plot(time, Po218tracker, label = "Po218")
+#plt.plot(time, Pb214tracker, label = "Pb214")
+#plt.plot(time, Bitracker, label = "Bi")
+plt.plot(time, Pb210tracker, label = "Pb210")
+#plt.plot(time, Po214tracker, label = "Po214")
+
+plt.legend(loc="upper left")
+plt.xlabel("time in hours")
+plt.ylabel("number of atoms")
+plt.show()
+
+print(Pb210creationrate)
+
+
